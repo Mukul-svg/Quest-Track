@@ -107,9 +107,9 @@ app.post("/api/sync", async (_req, res) => {
     }
 });
 
-const builtIndex = path.resolve(__dirname, "..", "client", "dist", "index.html");
+const builtIndex = path.resolve(__dirname, "..", "dist", "index.html");
 if (fs.existsSync(builtIndex)) {
-    app.use(express.static(path.resolve(__dirname, "..", "client", "dist")));
+    app.use(express.static(path.resolve(__dirname, "..", "dist")));
     app.get(/^(?!\/api).*/, (_req, res) => {
         res.sendFile(builtIndex);
     });
