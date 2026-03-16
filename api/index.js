@@ -13,7 +13,7 @@ const {
     importTasks,
     linkTasksToPages,
 } = require("./db");
-require("dotenv").config();
+try { require("dotenv").config(); } catch (e) {} // Don't crash if dotenv fails
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);

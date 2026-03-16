@@ -1,17 +1,6 @@
-const fs = require("fs");
-const path = require("path");
 const mongoose = require("mongoose");
-// Try requiring sync, but allow degradation for Serverless environments that lack it
-let parse;
-try {
-    parse = require("csv-parse/sync").parse;
-} catch (e) {
-    parse = null; 
-}
 const { marked } = require("marked");
 const { Page, Task } = require("./mongoModels");
-
-const workspaceRoot = path.resolve(__dirname, "..", "..");
 
 // Ensure you call connectDB before using database operations anywhere
 async function connectDB() {
@@ -35,21 +24,8 @@ function normalize(text) {
         .trim();
 }
 
-function detectCsvPath() {
-    const files = fs.readdirSync(workspaceRoot);
-    const match = files.find(
-        (name) =>
-            name.endsWith(".csv") &&
-            name.includes("Go Infrastructure Learning Tracker") &&
-            !name.includes("_all")
-    );
-    return match ? path.join(workspaceRoot, match) : null;
-}
-
-function detectPagesDir() {
-    const dir = path.join(workspaceRoot, "Go Infrastructure Learning Tracker");
-    return fs.existsSync(dir) ? dir : null;
-}
+function detectCsvPath() { return null; }
+function detectPagesDir() { return null; }
 
 async function getTasks() {
     await connectDB();
@@ -137,7 +113,7 @@ async function importPages() {
 
 async function importTasks() {
     if (!parse) throw new Error("CSV parsing is not supported on this Serverless runtime. Data must be imported locally.");
-    
+
     await connectDB();
     const csvPath = detectCsvPath();
     if (!csvPath) {
