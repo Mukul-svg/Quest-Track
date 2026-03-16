@@ -14,11 +14,15 @@ export default defineConfig({
     build: {
         outDir: path.resolve(__dirname, "dist"),
         emptyOutDir: true,
+        chunkSizeWarningLimit: 1000,
         rollupOptions: {
             output: {
                 manualChunks(id) {
-                    if (id.includes("node_modules/@mui/x-data-grid")) {
-                        return "mui-data-grid";
+                    if (id.includes("node_modules/@mui")) {
+                        return "vendor-mui";
+                    }
+                    if (id.includes("node_modules/react") || id.includes("node_modules/react-dom")) {
+                        return "vendor-react";
                     }
                     return undefined;
                 },
