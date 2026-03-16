@@ -107,13 +107,7 @@ app.post("/api/sync", async (_req, res) => {
     }
 });
 
-const builtIndex = path.resolve(__dirname, "..", "dist", "index.html");
-if (fs.existsSync(builtIndex)) {
-    app.use(express.static(path.resolve(__dirname, "..", "dist")));
-    app.get(/^(?!\/api).*/, (_req, res) => {
-        res.sendFile(builtIndex);
-    });
-}
+// Remove static file serving - Vercel handles this perfectly via its CDN natively!
 
 // Export for Vercel Serverless
 module.exports = app;
