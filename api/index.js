@@ -1,17 +1,10 @@
 const express = require("express");
 const cors = require("cors");
-const {
-    connectDB,
-    getTasks,
-    getTask,
-    updateTask,
-    getPageFields,
-    toggleChecklistItem,
-    importPages,
-    importTasks,
-    linkTasksToPages,
-} = require("./db");
 try { require("dotenv").config(); } catch (e) { } // Don't crash if dotenv fails
+
+function getDb() {
+    return require("./db");
+}
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -24,19 +17,24 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.get("/api/options", async (_req, res) => {
-    // Generate default select options for the frontend based on all possible tasks in MongoDB
-    const tasks = await getTasks();
-    const uniqueVals = (field) => [...new Set(tasks.map(t => t[field]).filter(v => v))].sort();
-    res.json({
-        phases: uniqueVals("phase"),
-        statuses: uniqueVals("status"),
-        types: uniqueVals("type"),
-        difficulties: uniqueVals("difficulty")
-    });
+    try {
+        const { getTasks } = getDb();
+        const tasks = await getTasks();
+        const uniqueVals = (field) => [...new Set(tasks.map(t => t[field]).filter(v => v))].sort();
+        res.json({
+            phases: uniqueVals("phase"),
+            statuses: uniqueVals("status"),
+            types: uniqueVals("type"),
+            difficulties: uniqueVals("difficulty")
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 app.get("/api/tasks", async (_req, res) => {
     try {
+        const { getTasks } = getDb();
         const tasks = await getTasks();
         res.json(tasks);
     } catch (e) {
@@ -47,6 +45,7 @@ app.get("/api/tasks", async (_req, res) => {
 app.patch("/api/tasks/:id", async (req, res) => {
     try {
         const id = req.params.id;
+        const { updateTask } = getDb();
         const updated = await updateTask(id, req.body || {});
         res.json(updated);
     } catch (e) {
@@ -57,6 +56,7 @@ app.patch("/api/tasks/:id", async (req, res) => {
 app.get("/api/tasks/:id/page", async (req, res) => {
     try {
         const id = req.params.id;
+        const { getTask, getPageFields } = getDb();
         const task = await getTask(id);
         if (!task) {
             return res.status(404).json({ message: "Task not found" });
@@ -78,6 +78,7 @@ app.patch("/api/pages/:id/checklist/:lineIndex", async (req, res) => {
         const lineIndex = Number(req.params.lineIndex);
         const checked = Boolean(req.body.checked);
 
+        const { toggleChecklistItem, getPageFields } = getDb();
         const content = await toggleChecklistItem(pageId, lineIndex, checked);
         if (!content) {
             return res.status(404).json({ message: "Checklist item not found" });
@@ -92,6 +93,7 @@ app.patch("/api/pages/:id/checklist/:lineIndex", async (req, res) => {
 
 app.post("/api/sync", async (_req, res) => {
     try {
+        const { importPages, importTasks, linkTasksToPages, getTasks } = getDb();
         await importPages();
         await importTasks();
         await linkTasksToPages();
