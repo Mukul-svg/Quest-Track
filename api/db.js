@@ -1,7 +1,13 @@
 const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
-const { parse } = require("csv-parse/sync");
+// Try requiring sync, but allow degradation for Serverless environments that lack it
+let parse;
+try {
+    parse = require("csv-parse/sync").parse;
+} catch (e) {
+    parse = null; 
+}
 const { marked } = require("marked");
 const { Page, Task } = require("./mongoModels");
 
@@ -130,6 +136,8 @@ async function importPages() {
 }
 
 async function importTasks() {
+    if (!parse) throw new Error("CSV parsing is not supported on this Serverless runtime. Data must be imported locally.");
+    
     await connectDB();
     const csvPath = detectCsvPath();
     if (!csvPath) {
