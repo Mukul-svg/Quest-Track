@@ -18,7 +18,15 @@ require("dotenv").config();
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 
-connectDB();
+// Ensure DB connection is established before processing any request
+app.use(async (req, res, next) => {
+    try {
+        await connectDB();
+        next();
+    } catch (err) {
+        res.status(500).json({ error: "Database connection failed", details: err.message });
+    }
+});
 
 app.use(cors());
 app.use(express.json());

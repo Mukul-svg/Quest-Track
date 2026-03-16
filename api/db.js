@@ -11,11 +11,14 @@ const workspaceRoot = path.resolve(__dirname, "..", "..");
 async function connectDB() {
     if (mongoose.connection.readyState >= 1) return;
     try {
+        if (!process.env.MONGO_URI) {
+            throw new Error("MONGO_URI environment variable is missing");
+        }
         await mongoose.connect(process.env.MONGO_URI);
         console.log("✅ Main app connected to MongoDB");
     } catch (err) {
         console.error("❌ MongoDB connection error:", err);
-        process.exit(1);
+        throw err;
     }
 }
 
