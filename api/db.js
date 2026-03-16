@@ -34,9 +34,6 @@ function normalize(text) {
         .trim();
 }
 
-function detectCsvPath() { return null; }
-function detectPagesDir() { return null; }
-
 async function getTasks() {
     await connectDB();
     const tasks = await Task.find({})
@@ -90,74 +87,11 @@ async function getPageFields(pageId) {
 }
 
 async function importPages() {
-    await connectDB();
-    const pagesDir = detectPagesDir();
-    if (!pagesDir) {
-        return { upserted: 0 };
-    }
-
-    const files = fs.readdirSync(pagesDir).filter((name) => name.endsWith(".md"));
-    let upserted = 0;
-    for (const fileName of files) {
-        const full = path.join(pagesDir, fileName);
-        const content = fs.readFileSync(full, "utf8");
-        const first = (content.split(/\r?\n/)[0] || "").trim();
-        const title = first.startsWith("# ") ? first.slice(2).trim() : fileName;
-
-        await Page.findOneAndUpdate(
-            { file_name: fileName },
-            {
-                $set: {
-                    title,
-                    title_normalized: normalize(title),
-                    content,
-                    updated_at: new Date()
-                }
-            },
-            { upsert: true }
-        );
-        upserted++;
-    }
-    return { upserted };
+    throw new Error("/api/sync is disabled in production. Data import must be run locally.");
 }
 
 async function importTasks() {
-    if (!parse) throw new Error("CSV parsing is not supported on this Serverless runtime. Data must be imported locally.");
-
-    await connectDB();
-    const csvPath = detectCsvPath();
-    if (!csvPath) {
-        return { imported: 0 };
-    }
-
-    const content = fs.readFileSync(csvPath, "utf8");
-    const rows = parse(content, { columns: true, trim: true, skip_empty_lines: true, bom: true });
-
-    let imported = 0;
-    for (const row of rows) {
-        const title = String(row.Task || "").trim();
-        if (!title) continue;
-
-        await Task.findOneAndUpdate(
-            { title: title },
-            {
-                $set: {
-                    title_normalized: normalize(title),
-                    phase: String(row.Phase || "").trim(),
-                    status: String(row.Status || "").trim(),
-                    type: String(row.Type || "").trim(),
-                    difficulty: String(row.Difficulty || "").trim(),
-                    duration: String(row.Duration || "").trim(),
-                    resources: String(row.Resources || "").trim(),
-                    notes: String(row.Notes || "").trim(),
-                    updated_at: new Date()
-                }
-            },
-            { upsert: true }
-        );
-        imported++;
-    }
-    return { imported };
+    throw new Error("/api/sync is disabled in production. Data import must be run locally.");
 }
 
 async function linkTasksToPages() {
