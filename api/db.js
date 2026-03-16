@@ -1,6 +1,25 @@
 const mongoose = require("mongoose");
-const { marked } = require("marked");
 const { Page, Task } = require("./mongoModels");
+
+const TASK_MUTABLE_FIELDS = new Set([
+    "phase",
+    "status",
+    "type",
+    "difficulty",
+    "duration",
+    "resources",
+    "notes",
+    "page_id",
+]);
+
+let markedParser = null;
+async function renderMarkdown(markdown) {
+    if (!markedParser) {
+        const markedModule = await import("marked");
+        markedParser = markedModule.marked;
+    }
+    return markedParser.parse(markdown);
+}
 
 let connectPromise = null;
 
@@ -54,8 +73,15 @@ async function getTasks() {
 
 async function updateTask(id, updates) {
     await connectDB();
-    updates.updated_at = new Date();
-    const doc = await Task.findByIdAndUpdate(id, { $set: updates }, { new: true }).lean();
+
+    const sanitizedUpdates = {};
+    for (const [key, value] of Object.entries(updates || {})) {
+        if (!TASK_MUTABLE_FIELDS.has(key)) continue;
+        sanitizedUpdates[key] = key === "page_id" && !value ? null : value;
+    }
+
+    sanitizedUpdates.updated_at = new Date();
+    const doc = await Task.findByIdAndUpdate(id, { $set: sanitizedUpdates }, { new: true }).lean();
     if (doc) doc.id = doc._id.toString();
     return doc;
 }
@@ -80,7 +106,7 @@ async function getPageFields(pageId) {
     if (doc) {
         doc.id = doc._id.toString();
         const renderContent = normalizeMarkdownForRendering(doc.content || "");
-        doc.html = marked.parse(renderContent);
+        doc.html = await renderMarkdown(renderContent);
         doc.checklist = extractChecklist(doc.content);
     }
     return doc || null;
@@ -149,7 +175,7 @@ async function toggleChecklistItem(pageId, lineIndex, checked) {
             page.updated_at = new Date();
             await page.save();
             return {
-                html: marked.parse(normalizeMarkdownForRendering(page.content)),
+                html: await renderMarkdown(normalizeMarkdownForRendering(page.content)),
                 checklist: extractChecklist(page.content),
             };
         }

@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const mongoose = require("mongoose");
 try { require("dotenv").config(); } catch (e) { } // Don't crash if dotenv fails
 
 function getDb() {
@@ -10,7 +11,7 @@ const app = express();
 const PORT = Number(process.env.PORT || 3000);
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "256kb" }));
 
 app.get("/api/health", (_req, res) => {
     res.json({ ok: true });
@@ -45,8 +46,19 @@ app.get("/api/tasks", async (_req, res) => {
 app.patch("/api/tasks/:id", async (req, res) => {
     try {
         const id = req.params.id;
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({ error: "Invalid task id" });
+        }
+
+        if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
+            return res.status(400).json({ error: "Invalid request body" });
+        }
+
         const { updateTask } = getDb();
         const updated = await updateTask(id, req.body || {});
+        if (!updated) {
+            return res.status(404).json({ error: "Task not found" });
+        }
         res.json(updated);
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -56,6 +68,10 @@ app.patch("/api/tasks/:id", async (req, res) => {
 app.get("/api/tasks/:id/page", async (req, res) => {
     try {
         const id = req.params.id;
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({ error: "Invalid task id" });
+        }
+
         const { getTask, getPageFields } = getDb();
         const task = await getTask(id);
         if (!task) {
@@ -76,7 +92,17 @@ app.patch("/api/pages/:id/checklist/:lineIndex", async (req, res) => {
     try {
         const pageId = req.params.id;
         const lineIndex = Number(req.params.lineIndex);
-        const checked = Boolean(req.body.checked);
+        if (!mongoose.isValidObjectId(pageId)) {
+            return res.status(400).json({ error: "Invalid page id" });
+        }
+        if (!Number.isInteger(lineIndex) || lineIndex < 0) {
+            return res.status(400).json({ error: "Invalid checklist line index" });
+        }
+        if (!req.body || typeof req.body.checked !== "boolean") {
+            return res.status(400).json({ error: "checked must be a boolean" });
+        }
+
+        const checked = req.body.checked;
 
         const { toggleChecklistItem, getPageFields } = getDb();
         const content = await toggleChecklistItem(pageId, lineIndex, checked);
@@ -92,17 +118,7 @@ app.patch("/api/pages/:id/checklist/:lineIndex", async (req, res) => {
 });
 
 app.post("/api/sync", async (_req, res) => {
-    try {
-        const { importPages, importTasks, linkTasksToPages, getTasks } = getDb();
-        await importPages();
-        await importTasks();
-        await linkTasksToPages();
-
-        const tasksCount = (await getTasks()).length;
-        return res.json({ ok: true, synced: true, counts: { tasks: tasksCount } });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
+    res.status(403).json({ error: "Sync is disabled in production" });
 });
 
 // Remove static file serving - Vercel handles this perfectly via its CDN natively!
