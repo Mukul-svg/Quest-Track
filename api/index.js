@@ -16,16 +16,6 @@ try { require("dotenv").config(); } catch (e) { } // Don't crash if dotenv fails
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 
-// Ensure DB connection is established before processing any request
-app.use(async (req, res, next) => {
-    try {
-        await connectDB();
-        next();
-    } catch (err) {
-        res.status(500).json({ error: "Database connection failed", details: err.message });
-    }
-});
-
 app.use(cors());
 app.use(express.json());
 

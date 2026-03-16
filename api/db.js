@@ -2,17 +2,27 @@ const mongoose = require("mongoose");
 const { marked } = require("marked");
 const { Page, Task } = require("./mongoModels");
 
+let connectPromise = null;
+
 // Ensure you call connectDB before using database operations anywhere
 async function connectDB() {
     if (mongoose.connection.readyState >= 1) return;
+    if (connectPromise) return connectPromise;
+
     try {
         if (!process.env.MONGO_URI) {
             throw new Error("MONGO_URI environment variable is missing");
         }
-        await mongoose.connect(process.env.MONGO_URI);
+
+        connectPromise = mongoose.connect(process.env.MONGO_URI, {
+            serverSelectionTimeoutMS: 5000,
+        });
+
+        await connectPromise;
         console.log("✅ Main app connected to MongoDB");
     } catch (err) {
         console.error("❌ MongoDB connection error:", err);
+        connectPromise = null;
         throw err;
     }
 }
