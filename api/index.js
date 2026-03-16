@@ -1,7 +1,5 @@
 const express = require("express");
 const cors = require("cors");
-const path = require("path");
-const fs = require("fs");
 const {
     connectDB,
     getTasks,
@@ -13,7 +11,7 @@ const {
     importTasks,
     linkTasksToPages,
 } = require("./db");
-try { require("dotenv").config(); } catch (e) {} // Don't crash if dotenv fails
+try { require("dotenv").config(); } catch (e) { } // Don't crash if dotenv fails
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -120,8 +118,8 @@ app.post("/api/sync", async (_req, res) => {
 // Export for Vercel Serverless
 module.exports = app;
 
-// Only listen locally if not running on Vercel
-if (process.env.NODE_ENV !== "production") {
+// Only listen when running directly in local development.
+if (require.main === module) {
     app.listen(PORT, () => {
         console.log(`API server running on http://localhost:${PORT}`);
     });
