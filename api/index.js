@@ -10,6 +10,12 @@ function getDb() {
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 
+function startServer(port = PORT) {
+    return app.listen(port, () => {
+        console.log(`API server running on http://localhost:${port}`);
+    });
+}
+
 app.use(cors());
 app.use(express.json({ limit: "256kb" }));
 
@@ -125,10 +131,13 @@ app.post("/api/sync", async (_req, res) => {
 
 // Export for Vercel Serverless
 module.exports = app;
+module.exports.startServer = startServer;
 
-// Only listen when running directly in local development.
-if (require.main === module) {
-    app.listen(PORT, () => {
-        console.log(`API server running on http://localhost:${PORT}`);
-    });
+// Listen automatically when started with node in local development.
+const isDirectExecution =
+    require.main === module ||
+    /(?:^|[\\/])index\.js$/i.test(process.argv[1] || "");
+
+if (isDirectExecution) {
+    startServer();
 }
